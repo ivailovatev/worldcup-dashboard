@@ -19,6 +19,7 @@ const totalMatchesElement = document.getElementById('total-matches');
 const watchedMatchesElement = document.getElementById('watched-matches');
 const favoriteMatchesElement = document.getElementById('favorite-matches');
 const standingsContainer = document.getElementById('standings-container');
+const tournamentStatsContainer = document.getElementById('tournament-stats-container');
 
 /**
  * Formats a date string to a readable format
@@ -131,8 +132,131 @@ function renderGroupStandings() {
 }
 
 /**
- * Initializes the application on page load
+ * Renders tournament statistics cards
+ * Displays aggregate statistics about the tournament
  */
+function renderTournamentStatistics() {
+    try {
+        if (!tournamentStatsContainer) {
+            console.error('Tournament stats container not found');
+            return;
+        }
+
+        // Clear existing content
+        tournamentStatsContainer.innerHTML = '';
+
+        // Handle empty state
+        if (matches.length === 0) {
+            tournamentStatsContainer.innerHTML = '<div class="empty-state"><p>No matches yet. Add matches to see tournament statistics!</p></div>';
+            return;
+        }
+
+        // Calculate statistics
+        const avgGoals = calculateAverageGoalsPerMatch(matches);
+        const highestScoringMatch = findHighestScoringMatch(matches);
+        const mostFavoriteTeam = findMostFavoriteTeam(matches);
+        const mostWatchedTeam = findMostWatchedTeam(matches);
+        const biggestWin = findBiggestWin(matches);
+
+        // Create stats grid
+        const statsGrid = document.createElement('div');
+        statsGrid.className = 'stats-grid';
+
+        // Average Goals Per Match Card
+        const avgGoalsCard = createStatCard(
+            'Average Goals Per Match',
+            avgGoals.toFixed(2),
+            '⚽'
+        );
+        statsGrid.appendChild(avgGoalsCard);
+
+        // Highest Scoring Match Card
+        let highestScoringContent = 'No matches';
+        if (highestScoringMatch) {
+            const matchDate = new Date(highestScoringMatch.match.date);
+            const dateStr = matchDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: '2-digit'
+            });
+            highestScoringContent = `
+                <div class="stat-match-info">
+                    <div class="match-detail">${highestScoringMatch.match.homeTeam} ${highestScoringMatch.match.score} ${highestScoringMatch.match.awayTeam}</div>
+                    <div class="match-meta">${highestScoringMatch.totalGoals} total goals • ${dateStr}</div>
+                </div>
+            `;
+        }
+        const highestScoringCard = document.createElement('div');
+        highestScoringCard.className = 'tournament-stat-card';
+        highestScoringCard.innerHTML = `
+            <div class="stat-icon">🔥</div>
+            <div class="stat-title">Highest Scoring Match</div>
+            <div class="stat-value-large">${highestScoringContent}</div>
+        `;
+        statsGrid.appendChild(highestScoringCard);
+
+        // Most Favorite Team Card
+        const mostFavoriteCard = createStatCard(
+            'Most Favorite Team',
+            mostFavoriteTeam,
+            '⭐'
+        );
+        statsGrid.appendChild(mostFavoriteCard);
+
+        // Most Watched Team Card
+        const mostWatchedCard = createStatCard(
+            'Most Watched Team',
+            mostWatchedTeam,
+            '👁️'
+        );
+        statsGrid.appendChild(mostWatchedCard);
+
+        // Biggest Win Card
+        let biggestWinContent = 'No matches';
+        if (biggestWin) {
+            const { homeGoals, awayGoals } = parseScore(biggestWin.match.score);
+            const winner = homeGoals > awayGoals ? biggestWin.match.homeTeam : biggestWin.match.awayTeam;
+            biggestWinContent = `
+                <div class="stat-match-info">
+                    <div class="match-detail">${biggestWin.match.homeTeam} ${biggestWin.match.score} ${biggestWin.match.awayTeam}</div>
+                    <div class="match-meta">${winner} won by ${biggestWin.goalDifference}</div>
+                </div>
+            `;
+        }
+        const biggestWinCard = document.createElement('div');
+        biggestWinCard.className = 'tournament-stat-card';
+        biggestWinCard.innerHTML = `
+            <div class="stat-icon">🏆</div>
+            <div class="stat-title">Biggest Win</div>
+            <div class="stat-value-large">${biggestWinContent}</div>
+        `;
+        statsGrid.appendChild(biggestWinCard);
+
+        tournamentStatsContainer.appendChild(statsGrid);
+
+        console.log('✓ Tournament statistics rendered');
+    } catch (error) {
+        console.error('Error rendering tournament statistics:', error);
+    }
+}
+
+/**
+ * Creates a simple tournament statistic card
+ * @param {string} title - Card title
+ * @param {string} value - Card value/content
+ * @param {string} icon - Emoji icon for the card
+ * @returns {HTMLElement} Tournament stat card element
+ */
+function createStatCard(title, value, icon) {
+    const card = document.createElement('div');
+    card.className = 'tournament-stat-card';
+    card.innerHTML = `
+        <div class="stat-icon">${icon}</div>
+        <div class="stat-title">${title}</div>
+        <div class="stat-value">${value}</div>
+    `;
+    return card;
+}
 function initializeApp() {
     console.log('Initializing World Cup Dashboard 2026...');
     
@@ -147,6 +271,9 @@ function initializeApp() {
     
     // Render group standings
     renderGroupStandings();
+    
+    // Render tournament statistics
+    renderTournamentStatistics();
     
     // Update statistics
     updateStatistics();
@@ -224,6 +351,7 @@ function handleAddMatch(event) {
         // Refresh UI
         renderMatches(matches);
         renderGroupStandings();
+        renderTournamentStatistics();
         updateStatistics();
 
         console.log(`✓ Match added: ${newMatch.toString()}`);
@@ -335,6 +463,7 @@ function handleToggleFavorite(index) {
             matches[index].toggleFavorite();
             saveMatches(matches);
             renderMatches(getFilteredMatches());
+            renderTournamentStatistics();
             updateStatistics();
             console.log(`✓ Favorite toggled for match ${index + 1}`);
         }
@@ -353,6 +482,7 @@ function handleToggleWatched(index) {
             matches[index].toggleWatched();
             saveMatches(matches);
             renderMatches(getFilteredMatches());
+            renderTournamentStatistics();
             updateStatistics();
             console.log(`✓ Watched toggled for match ${index + 1}`);
         }
@@ -372,6 +502,7 @@ function handleDeleteMatch(index) {
             saveMatches(matches);
             renderMatches(getFilteredMatches());
             renderGroupStandings();
+            renderTournamentStatistics();
             updateStatistics();
             console.log(`✓ Match ${index + 1} deleted`);
         }

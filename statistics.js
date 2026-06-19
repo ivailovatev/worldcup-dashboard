@@ -337,6 +337,204 @@ function calculateGroupStandings(matches) {
 }
 
 /**
+ * Calculates average goals per match
+ * @param {Array<Match>} matches - Array of Match instances
+ * @returns {number} Average goals per match, 0 if no matches
+ */
+function calculateAverageGoalsPerMatch(matches) {
+    try {
+        if (!Array.isArray(matches) || matches.length === 0) {
+            return 0;
+        }
+
+        let totalGoals = 0;
+        let validMatches = 0;
+
+        matches.forEach(match => {
+            if (match && match.score) {
+                const { homeGoals, awayGoals } = parseScore(match.score);
+                totalGoals += homeGoals + awayGoals;
+                validMatches++;
+            }
+        });
+
+        if (validMatches === 0) {
+            return 0;
+        }
+
+        const average = totalGoals / validMatches;
+        return Math.round(average * 100) / 100;
+    } catch (error) {
+        console.error('calculateAverageGoalsPerMatch: Error calculating average', error);
+        return 0;
+    }
+}
+
+/**
+ * Finds the match with the highest total goals
+ * @param {Array<Match>} matches - Array of Match instances
+ * @returns {Object} Object with match and totalGoals, or null if no matches
+ */
+function findHighestScoringMatch(matches) {
+    try {
+        if (!Array.isArray(matches) || matches.length === 0) {
+            return null;
+        }
+
+        let highestMatch = null;
+        let highestGoals = -1;
+
+        matches.forEach(match => {
+            if (match && match.score) {
+                const { homeGoals, awayGoals } = parseScore(match.score);
+                const totalGoals = homeGoals + awayGoals;
+
+                if (totalGoals > highestGoals) {
+                    highestGoals = totalGoals;
+                    highestMatch = {
+                        match: match,
+                        totalGoals: totalGoals
+                    };
+                }
+            }
+        });
+
+        return highestMatch;
+    } catch (error) {
+        console.error('findHighestScoringMatch: Error finding highest scoring match', error);
+        return null;
+    }
+}
+
+/**
+ * Finds the team with the most favorite match appearances
+ * @param {Array<Match>} matches - Array of Match instances
+ * @returns {string} Team name with most favorite appearances, or "No data"
+ */
+function findMostFavoriteTeam(matches) {
+    try {
+        if (!Array.isArray(matches)) {
+            return 'No data';
+        }
+
+        const teamCount = {};
+        let totalFavorites = 0;
+
+        matches.forEach(match => {
+            if (match && match.favorite === true) {
+                totalFavorites++;
+                const homeTeam = match.homeTeam.trim();
+                const awayTeam = match.awayTeam.trim();
+
+                teamCount[homeTeam] = (teamCount[homeTeam] || 0) + 1;
+                teamCount[awayTeam] = (teamCount[awayTeam] || 0) + 1;
+            }
+        });
+
+        if (totalFavorites === 0) {
+            return 'No data';
+        }
+
+        let maxTeam = null;
+        let maxCount = 0;
+
+        Object.entries(teamCount).forEach(([team, count]) => {
+            if (count > maxCount) {
+                maxCount = count;
+                maxTeam = team;
+            }
+        });
+
+        return maxTeam || 'No data';
+    } catch (error) {
+        console.error('findMostFavoriteTeam: Error finding most favorite team', error);
+        return 'No data';
+    }
+}
+
+/**
+ * Finds the team with the most watched match appearances
+ * @param {Array<Match>} matches - Array of Match instances
+ * @returns {string} Team name with most watched appearances, or "No data"
+ */
+function findMostWatchedTeam(matches) {
+    try {
+        if (!Array.isArray(matches)) {
+            return 'No data';
+        }
+
+        const teamCount = {};
+        let totalWatched = 0;
+
+        matches.forEach(match => {
+            if (match && match.watched === true) {
+                totalWatched++;
+                const homeTeam = match.homeTeam.trim();
+                const awayTeam = match.awayTeam.trim();
+
+                teamCount[homeTeam] = (teamCount[homeTeam] || 0) + 1;
+                teamCount[awayTeam] = (teamCount[awayTeam] || 0) + 1;
+            }
+        });
+
+        if (totalWatched === 0) {
+            return 'No data';
+        }
+
+        let maxTeam = null;
+        let maxCount = 0;
+
+        Object.entries(teamCount).forEach(([team, count]) => {
+            if (count > maxCount) {
+                maxCount = count;
+                maxTeam = team;
+            }
+        });
+
+        return maxTeam || 'No data';
+    } catch (error) {
+        console.error('findMostWatchedTeam: Error finding most watched team', error);
+        return 'No data';
+    }
+}
+
+/**
+ * Finds the match with the biggest goal difference (biggest win)
+ * @param {Array<Match>} matches - Array of Match instances
+ * @returns {Object} Object with match and goalDifference, or null if no valid matches
+ */
+function findBiggestWin(matches) {
+    try {
+        if (!Array.isArray(matches) || matches.length === 0) {
+            return null;
+        }
+
+        let biggestMatch = null;
+        let biggestDifference = -1;
+
+        matches.forEach(match => {
+            if (match && match.score) {
+                const { homeGoals, awayGoals } = parseScore(match.score);
+                const difference = Math.abs(homeGoals - awayGoals);
+
+                if (difference > biggestDifference) {
+                    biggestDifference = difference;
+                    biggestMatch = {
+                        match: match,
+                        goalDifference: difference
+                    };
+                }
+            }
+        });
+
+        return biggestMatch;
+    } catch (error) {
+        console.error('findBiggestWin: Error finding biggest win', error);
+        return null;
+    }
+}
+
+/**
  * Exports statistics functions for use in other modules
  */
 if (typeof module !== 'undefined' && module.exports) {
@@ -349,6 +547,11 @@ if (typeof module !== 'undefined' && module.exports) {
         getUniqueGroups,
         getStatisticsSummary,
         calculateGroupStandings,
-        parseScore
+        parseScore,
+        calculateAverageGoalsPerMatch,
+        findHighestScoringMatch,
+        findMostFavoriteTeam,
+        findMostWatchedTeam,
+        findBiggestWin
     };
 }
