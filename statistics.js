@@ -535,6 +535,155 @@ function findBiggestWin(matches) {
 }
 
 /**
+ * Calculates aggregated statistics for a single team across all matches
+ * @param {Array<Match>} matches - Array of Match instances
+ * @param {string} teamName - Team name to calculate stats for
+ * @returns {Object} Team statistics
+ */
+function getTeamStats(matches, teamName) {
+    try {
+        if (!Array.isArray(matches) || !teamName) return null;
+
+        const nameLower = teamName.trim().toLowerCase();
+        const stats = {
+            team: teamName,
+            played: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            goalDifference: 0,
+            points: 0
+        };
+
+        matches.forEach(match => {
+            if (!match || !match.score) return;
+
+            const home = (match.homeTeam || '').trim();
+            const away = (match.awayTeam || '').trim();
+            const homeLower = home.toLowerCase();
+            const awayLower = away.toLowerCase();
+
+            const { homeGoals, awayGoals } = parseScore(match.score);
+
+            if (homeLower === nameLower) {
+                stats.played++;
+                stats.goalsFor += homeGoals;
+                stats.goalsAgainst += awayGoals;
+                if (homeGoals > awayGoals) stats.wins++;
+                else if (homeGoals === awayGoals) stats.draws++;
+                else stats.losses++;
+            } else if (awayLower === nameLower) {
+                stats.played++;
+                stats.goalsFor += awayGoals;
+                stats.goalsAgainst += homeGoals;
+                if (awayGoals > homeGoals) stats.wins++;
+                else if (awayGoals === homeGoals) stats.draws++;
+                else stats.losses++;
+            }
+        });
+
+        stats.goalDifference = stats.goalsFor - stats.goalsAgainst;
+        stats.points = (stats.wins * 3) + (stats.draws * 1);
+
+        return stats;
+    } catch (error) {
+        console.error('getTeamStats: Error calculating team stats', error);
+        return null;
+    }
+}
+
+/**
+ * Predicts match winner between two teams using simple rule-based scoring
+ * @param {Array<Match>} matches - Array of Match instances
+ * @param {string} teamA
+ * @param {string} teamB
+ * @returns {Object} Prediction result
+ */
+function predictMatchWinner(matches, teamA, teamB) {
+    try {
+        if (!teamA || !teamB) {
+            return {
+                predictedWinner: 'Not enough data',
+                teamAChance: 50,
+                teamBChance: 50,
+                reason: 'Both team names are required.'
+            };
+        }
+
+        const statsA = getTeamStats(matches, teamA) || { played: 0 };
+        const statsB = getTeamStats(matches, teamB) || { played: 0 };
+
+        // If both have no data
+        if ((statsA.played === 0) && (statsB.played === 0)) {
+            return {
+                predictedWinner: 'Not enough data',
+                teamAChance: 50,
+                teamBChance: 50,
+                reason: 'There is not enough match history to make a prediction.'
+            };
+        }
+
+        // Compute scores using weighted formula
+        const scoreA = (statsA.points * 3) + (statsA.wins * 2) + (statsA.goalDifference) + (statsA.goalsFor * 0.5) - (statsA.losses || 0);
+        const scoreB = (statsB.points * 3) + (statsB.wins * 2) + (statsB.goalDifference) + (statsB.goalsFor * 0.5) - (statsB.losses || 0);
+
+        // Normalize to percentages
+        const total = Math.abs(scoreA) + Math.abs(scoreB);
+        let aPct = 50, bPct = 50;
+
+        if (total > 0) {
+            aPct = Math.round((Math.abs(scoreA) / total) * 100);
+            bPct = 100 - aPct;
+        } else {
+            // If both scores are zero, use played ratio
+            const playedTotal = (statsA.played || 0) + (statsB.played || 0);
+            if (playedTotal > 0) {
+                aPct = Math.round(((statsA.played || 0) / playedTotal) * 100);
+                bPct = 100 - aPct;
+            }
+        }
+
+        let predictedWinner = 'Draw';
+        if (aPct > bPct) predictedWinner = teamA;
+        else if (bPct > aPct) predictedWinner = teamB;
+
+        // Build reason text
+        const reasonParts = [];
+        if ((statsA.points || 0) !== (statsB.points || 0)) {
+            reasonParts.push(`${(statsA.points || 0) > (statsB.points || 0) ? teamA : teamB} has more points`);
+        }
+        if ((statsA.goalDifference || 0) !== (statsB.goalDifference || 0)) {
+            reasonParts.push(`${(statsA.goalDifference || 0) > (statsB.goalDifference || 0) ? teamA : teamB} has better goal difference`);
+        }
+        if ((statsA.goalsFor || 0) !== (statsB.goalsFor || 0)) {
+            reasonParts.push(`${(statsA.goalsFor || 0) > (statsB.goalsFor || 0) ? teamA : teamB} scored more goals`);
+        }
+        if (reasonParts.length === 0) {
+            reasonParts.push('Statistics are similar; prediction is based on a combined score.');
+        }
+
+        const reason = reasonParts.join(', ') + '.';
+
+        return {
+            predictedWinner,
+            teamAChance: aPct,
+            teamBChance: bPct,
+            reason
+        };
+    } catch (error) {
+        console.error('predictMatchWinner: Error making prediction', error);
+        return {
+            predictedWinner: 'Not enough data',
+            teamAChance: 50,
+            teamBChance: 50,
+            reason: 'An error occurred while making a prediction.'
+        };
+    }
+}
+
+/**
  * Exports statistics functions for use in other modules
  */
 if (typeof module !== 'undefined' && module.exports) {
@@ -552,6 +701,8 @@ if (typeof module !== 'undefined' && module.exports) {
         findHighestScoringMatch,
         findMostFavoriteTeam,
         findMostWatchedTeam,
-        findBiggestWin
+        findBiggestWin,
+        getTeamStats,
+        predictMatchWinner
     };
 }

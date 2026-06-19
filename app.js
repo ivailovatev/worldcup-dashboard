@@ -20,6 +20,10 @@ const watchedMatchesElement = document.getElementById('watched-matches');
 const favoriteMatchesElement = document.getElementById('favorite-matches');
 const standingsContainer = document.getElementById('standings-container');
 const tournamentStatsContainer = document.getElementById('tournament-stats-container');
+const predictTeamAInput = document.getElementById('predict-team-a');
+const predictTeamBInput = document.getElementById('predict-team-b');
+const predictButton = document.getElementById('predict-button');
+const predictionResult = document.getElementById('prediction-result');
 
 /**
  * Formats a date string to a readable format
@@ -241,6 +245,64 @@ function renderTournamentStatistics() {
 }
 
 /**
+ * Handles predict button click
+ */
+function handlePredict() {
+    try {
+        const teamA = predictTeamAInput ? predictTeamAInput.value.trim() : '';
+        const teamB = predictTeamBInput ? predictTeamBInput.value.trim() : '';
+
+        if (!predictionResult) return;
+
+        if (!teamA || !teamB) {
+            predictionResult.innerHTML = '<div class="prediction-error">Please enter both team names to predict.</div>';
+            return;
+        }
+
+        const prediction = predictMatchWinner(matches, teamA, teamB);
+        renderPredictionResult(prediction, teamA, teamB);
+    } catch (error) {
+        console.error('handlePredict: Error running prediction', error);
+    }
+}
+
+/**
+ * Renders prediction result into the predictionResult container
+ * @param {Object} prediction
+ */
+function renderPredictionResult(prediction, teamA, teamB) {
+    if (!predictionResult) return;
+
+    const winnerText = prediction.predictedWinner === 'Not enough data' ? 'Not enough data' : `Predicted: ${prediction.predictedWinner}`;
+
+    const html = `
+        <div class="prediction-result-card">
+            <div class="prediction-header">
+                <div class="prediction-winner">${winnerText}</div>
+            </div>
+            <div class="prediction-body">
+                <div class="prediction-pair">
+                    <div class="team">
+                        <div class="team-name">${teamA}</div>
+                        <div class="team-chance">${prediction.teamAChance}%</div>
+                        <div class="chance-bar"><div class="fill" style="width: ${prediction.teamAChance}%; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));"></div></div>
+                    </div>
+                    <div class="team vs">vs</div>
+                    <div class="team">
+                        <div class="team-name">${teamB}</div>
+                        <div class="team-chance">${prediction.teamBChance}%</div>
+                        <div class="chance-bar"><div class="fill" style="width: ${prediction.teamBChance}%; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));"></div></div>
+                    </div>
+                </div>
+                <div class="prediction-reason">${prediction.reason}</div>
+            </div>
+        </div>
+    `;
+
+    predictionResult.innerHTML = html;
+}
+
+/**
  * Creates a simple tournament statistic card
  * @param {string} title - Card title
  * @param {string} value - Card value/content
@@ -307,6 +369,11 @@ function setupEventListeners() {
         if (searchInput) {
             searchInput.addEventListener('input', handleSearch);
         }
+
+    // Prediction button
+    if (predictButton) {
+        predictButton.addEventListener('click', handlePredict);
+    }
 }
 
 /**
