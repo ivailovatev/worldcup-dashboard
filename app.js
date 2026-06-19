@@ -304,9 +304,9 @@ function setupEventListeners() {
     }
 
     // Search input
-    if (searchInput) {
-        searchInput.addEventListener('input', handleSearch);
-    }
+        if (searchInput) {
+            searchInput.addEventListener('input', handleSearch);
+        }
 }
 
 /**
@@ -348,8 +348,8 @@ function handleAddMatch(event) {
         // Reset form
         matchForm.reset();
 
-        // Refresh UI
-        renderMatches(matches);
+        // Refresh UI - render filtered matches to preserve search
+        renderMatches(getFilteredMatches());
         renderGroupStandings();
         renderTournamentStatistics();
         updateStatistics();
@@ -380,9 +380,23 @@ function renderMatches(matchesToRender) {
         return;
     }
 
-    // Create and append match cards
-    matchesToRender.forEach((match, index) => {
-        const matchCard = createMatchCard(match, index);
+    // Create and append match cards (preserve global indexes so handlers work correctly)
+    matchesToRender.forEach((match) => {
+        // Try to find the match's global index in the main matches array
+        let globalIndex = matches.indexOf(match);
+        if (globalIndex === -1) {
+            // Fallback: match by identifying fields
+            globalIndex = matches.findIndex(m =>
+                m && match &&
+                m.homeTeam === match.homeTeam &&
+                m.awayTeam === match.awayTeam &&
+                m.date === match.date &&
+                m.score === match.score &&
+                m.group === match.group
+            );
+        }
+
+        const matchCard = createMatchCard(match, globalIndex);
         matchesContainer.appendChild(matchCard);
     });
 
@@ -463,6 +477,7 @@ function handleToggleFavorite(index) {
             matches[index].toggleFavorite();
             saveMatches(matches);
             renderMatches(getFilteredMatches());
+                        renderGroupStandings();
             renderTournamentStatistics();
             updateStatistics();
             console.log(`✓ Favorite toggled for match ${index + 1}`);
@@ -480,6 +495,7 @@ function handleToggleWatched(index) {
     try {
         if (matches[index]) {
             matches[index].toggleWatched();
+                        renderGroupStandings();
             saveMatches(matches);
             renderMatches(getFilteredMatches());
             renderTournamentStatistics();
