@@ -612,6 +612,140 @@ body {
 }
 
 /* ============================================
+   GROUP STANDINGS SECTION
+   ============================================ */
+
+.standings-section {
+    margin-bottom: var(--spacing-xxl);
+}
+
+.standings-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: var(--spacing-xl);
+}
+
+.group-standings {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    transition: all var(--transition-base);
+    box-shadow: var(--shadow-md);
+}
+
+.group-standings:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2), var(--shadow-lg);
+    transform: translateY(-5px);
+}
+
+.group-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: var(--spacing-md);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.standings-table thead {
+    background-color: rgba(0, 212, 255, 0.1);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.standings-table th {
+    padding: var(--spacing-sm) var(--spacing-xs);
+    text-align: left;
+    font-weight: 700;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.standings-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: all var(--transition-base);
+}
+
+.standings-table tbody tr:hover {
+    background-color: rgba(0, 212, 255, 0.05);
+}
+
+.standings-table tbody tr.first-place {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.1), transparent);
+    font-weight: 600;
+}
+
+.standings-table tbody tr.first-place td:first-child::before {
+    content: '🥇 ';
+    margin-right: var(--spacing-xs);
+}
+
+.standings-table td {
+    padding: var(--spacing-sm) var(--spacing-xs);
+    color: var(--text-primary);
+    text-align: left;
+}
+
+.col-team {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.col-number {
+    text-align: center;
+    min-width: 35px;
+    color: var(--text-secondary);
+}
+
+.points-col {
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 1.05rem;
+    text-align: center;
+}
+
+@media (max-width: 1024px) {
+    .standings-container {
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .standings-container {
+        grid-template-columns: 1fr;
+    }
+
+    .group-standings {
+        padding: var(--spacing-md);
+    }
+
+    .standings-table {
+        font-size: 0.85rem;
+    }
+
+    .standings-table th,
+    .standings-table td {
+        padding: var(--spacing-xs);
+    }
+
+    .col-team {
+        min-width: 100px;
+    }
+}
+
+/* ============================================
    ANIMATIONS
    ============================================ */
 

@@ -18,6 +18,117 @@ const searchInput = document.getElementById('search-input');
 const totalMatchesElement = document.getElementById('total-matches');
 const watchedMatchesElement = document.getElementById('watched-matches');
 const favoriteMatchesElement = document.getElementById('favorite-matches');
+const standingsContainer = document.getElementById('standings-container');
+
+/**
+ * Formats a date string to a readable format
+ * @param {string} dateString - ISO date string
+ * @returns {string} Formatted date
+ */
+function formatDate(dateString) {
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        return dateString;
+    }
+}
+
+/**
+ * Renders group standings tables
+ * Displays all groups with team statistics sorted by points
+ */
+function renderGroupStandings() {
+    try {
+        if (!standingsContainer) {
+            console.error('Standings container not found');
+            return;
+        }
+
+        // Calculate standings
+        const standings = calculateGroupStandings(matches);
+        const groups = Object.keys(standings).sort();
+
+        // Clear existing content
+        standingsContainer.innerHTML = '';
+
+        // Handle empty state
+        if (groups.length === 0) {
+            standingsContainer.innerHTML = '<div class="empty-state"><p>No matches yet. Add matches to see group standings!</p></div>';
+            return;
+        }
+
+        // Create table for each group
+        groups.forEach(group => {
+            const teamsList = standings[group];
+
+            // Create group container
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'group-standings';
+
+            // Create group title
+            const groupTitle = document.createElement('h3');
+            groupTitle.className = 'group-title';
+            groupTitle.textContent = `GROUP ${group}`;
+            groupDiv.appendChild(groupTitle);
+
+            // Create table
+            const table = document.createElement('table');
+            table.className = 'standings-table';
+
+            // Create table header
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr>
+                    <th class="col-team">Team</th>
+                    <th class="col-number">P</th>
+                    <th class="col-number">W</th>
+                    <th class="col-number">D</th>
+                    <th class="col-number">L</th>
+                    <th class="col-number">GF</th>
+                    <th class="col-number">GA</th>
+                    <th class="col-number">GD</th>
+                    <th class="col-number">Pts</th>
+                </tr>
+            `;
+            table.appendChild(thead);
+
+            // Create table body
+            const tbody = document.createElement('tbody');
+            teamsList.forEach((team, index) => {
+                const row = document.createElement('tr');
+                row.className = index === 0 ? 'first-place' : '';
+                
+                row.innerHTML = `
+                    <td class="col-team">${team.team}</td>
+                    <td class="col-number">${team.played}</td>
+                    <td class="col-number">${team.wins}</td>
+                    <td class="col-number">${team.draws}</td>
+                    <td class="col-number">${team.losses}</td>
+                    <td class="col-number">${team.goalsFor}</td>
+                    <td class="col-number">${team.goalsAgainst}</td>
+                    <td class="col-number">${team.goalDifference > 0 ? '+' : ''}${team.goalDifference}</td>
+                    <td class="col-number points-col">${team.points}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            table.appendChild(tbody);
+
+            groupDiv.appendChild(table);
+            standingsContainer.appendChild(groupDiv);
+        });
+
+        console.log(`✓ Group standings rendered for ${groups.length} groups`);
+    } catch (error) {
+        console.error('Error rendering group standings:', error);
+    }
+}
 
 /**
  * Initializes the application on page load
@@ -33,6 +144,9 @@ function initializeApp() {
     
     // Render initial matches
     renderMatches(matches);
+    
+    // Render group standings
+    renderGroupStandings();
     
     // Update statistics
     updateStatistics();
@@ -109,6 +223,7 @@ function handleAddMatch(event) {
 
         // Refresh UI
         renderMatches(matches);
+        renderGroupStandings();
         updateStatistics();
 
         console.log(`✓ Match added: ${newMatch.toString()}`);
@@ -256,6 +371,7 @@ function handleDeleteMatch(index) {
             matches.splice(index, 1);
             saveMatches(matches);
             renderMatches(getFilteredMatches());
+            renderGroupStandings();
             updateStatistics();
             console.log(`✓ Match ${index + 1} deleted`);
         }
@@ -343,26 +459,6 @@ function animateStatisticUpdate(element, value) {
         element.style.transition = 'transform 0.3s ease-out';
         element.style.transform = 'scale(1)';
     }, 10);
-}
-
-/**
- * Formats a date string to a readable format
- * @param {string} dateString - ISO date string
- * @returns {string} Formatted date
- */
-function formatDate(dateString) {
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    } catch (error) {
-        return dateString;
-    }
 }
 
 // Initialize app when DOM is ready

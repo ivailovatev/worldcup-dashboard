@@ -170,6 +170,173 @@ function getStatisticsSummary(matches) {
 }
 
 /**
+ * Parses score string and returns home and away goals
+ * @param {string} score - Score string (e.g., '2-1')
+ * @returns {Object} Object with homeGoals and awayGoals
+ */
+function parseScore(score) {
+    try {
+        const parts = score.trim().split('-');
+        if (parts.length !== 2) {
+            console.warn('parseScore: Invalid score format:', score);
+            return { homeGoals: 0, awayGoals: 0 };
+        }
+        
+        const homeGoals = parseInt(parts[0].trim(), 10);
+        const awayGoals = parseInt(parts[1].trim(), 10);
+        
+        if (isNaN(homeGoals) || isNaN(awayGoals)) {
+            console.warn('parseScore: Non-numeric goals in score:', score);
+            return { homeGoals: 0, awayGoals: 0 };
+        }
+        
+        return { homeGoals, awayGoals };
+    } catch (error) {
+        console.error('parseScore: Error parsing score:', error);
+        return { homeGoals: 0, awayGoals: 0 };
+    }
+}
+
+/**
+ * Calculates group standings based on matches
+ * Returns teams organized by group with calculated statistics
+ * Standings are sorted by points (desc), goal difference (desc), goals for (desc)
+ * @param {Array<Match>} matches - Array of Match instances
+ * @returns {Object} Object with groups as keys and arrays of team standings as values
+ */
+function calculateGroupStandings(matches) {
+    try {
+        if (!Array.isArray(matches)) {
+            console.warn('calculateGroupStandings: Expected an array, received:', typeof matches);
+            return {};
+        }
+
+        // Initialize standings object
+        const standings = {};
+        const teamStats = {}; // temp storage: key = "teamName|group"
+
+        // Process each match
+        matches.forEach(match => {
+            if (!match || !match.homeTeam || !match.awayTeam || !match.group || !match.score) {
+                return;
+            }
+
+            const group = match.group.trim();
+            const homeTeam = match.homeTeam.trim();
+            const awayTeam = match.awayTeam.trim();
+            
+            // Parse score
+            const { homeGoals, awayGoals } = parseScore(match.score);
+
+            // Initialize group if needed
+            if (!standings[group]) {
+                standings[group] = {};
+            }
+
+            // Initialize team stats if needed
+            const homeKey = `${homeTeam}|${group}`;
+            const awayKey = `${awayTeam}|${group}`;
+
+            if (!teamStats[homeKey]) {
+                teamStats[homeKey] = {
+                    team: homeTeam,
+                    played: 0,
+                    wins: 0,
+                    draws: 0,
+                    losses: 0,
+                    goalsFor: 0,
+                    goalsAgainst: 0
+                };
+            }
+
+            if (!teamStats[awayKey]) {
+                teamStats[awayKey] = {
+                    team: awayTeam,
+                    played: 0,
+                    wins: 0,
+                    draws: 0,
+                    losses: 0,
+                    goalsFor: 0,
+                    goalsAgainst: 0
+                };
+            }
+
+            // Update home team stats
+            const homeStats = teamStats[homeKey];
+            homeStats.played++;
+            homeStats.goalsFor += homeGoals;
+            homeStats.goalsAgainst += awayGoals;
+
+            if (homeGoals > awayGoals) {
+                homeStats.wins++;
+            } else if (homeGoals === awayGoals) {
+                homeStats.draws++;
+            } else {
+                homeStats.losses++;
+            }
+
+            // Update away team stats
+            const awayStats = teamStats[awayKey];
+            awayStats.played++;
+            awayStats.goalsFor += awayGoals;
+            awayStats.goalsAgainst += homeGoals;
+
+            if (awayGoals > homeGoals) {
+                awayStats.wins++;
+            } else if (awayGoals === homeGoals) {
+                awayStats.draws++;
+            } else {
+                awayStats.losses++;
+            }
+        });
+
+        // Convert team stats to standings format and calculate points
+        Object.entries(teamStats).forEach(([key, stats]) => {
+            const points = (stats.wins * 3) + (stats.draws * 1);
+            const goalDifference = stats.goalsFor - stats.goalsAgainst;
+            
+            const teamStanding = {
+                team: stats.team,
+                played: stats.played,
+                wins: stats.wins,
+                draws: stats.draws,
+                losses: stats.losses,
+                goalsFor: stats.goalsFor,
+                goalsAgainst: stats.goalsAgainst,
+                goalDifference: goalDifference,
+                points: points
+            };
+
+            const group = key.split('|')[1];
+            if (!standings[group][stats.team]) {
+                standings[group][stats.team] = teamStanding;
+            }
+        });
+
+        // Convert standing objects to arrays and sort
+        const result = {};
+        Object.entries(standings).forEach(([group, teams]) => {
+            result[group] = Object.values(teams).sort((a, b) => {
+                // Sort by: points (desc), goalDifference (desc), goalsFor (desc)
+                if (b.points !== a.points) {
+                    return b.points - a.points;
+                }
+                if (b.goalDifference !== a.goalDifference) {
+                    return b.goalDifference - a.goalDifference;
+                }
+                return b.goalsFor - a.goalsFor;
+            });
+        });
+
+        console.log('✓ Group standings calculated');
+        return result;
+    } catch (error) {
+        console.error('calculateGroupStandings: Error calculating standings', error);
+        return {};
+    }
+}
+
+/**
  * Exports statistics functions for use in other modules
  */
 if (typeof module !== 'undefined' && module.exports) {
@@ -180,6 +347,8 @@ if (typeof module !== 'undefined' && module.exports) {
         countByGroup,
         watchPercentage,
         getUniqueGroups,
-        getStatisticsSummary
+        getStatisticsSummary,
+        calculateGroupStandings,
+        parseScore
     };
 }
